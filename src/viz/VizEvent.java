@@ -10,6 +10,7 @@ public class VizEvent {
 	
 	Date startTime;
 	long startTimeMillis;
+	int duration;
 	
 	public VizEvent(String _name, Date _date, int _id){
 		
@@ -18,6 +19,7 @@ public class VizEvent {
 		id = _id;
 		
 		startTimeMillis = convertToMillis(startTime);
+		duration = -1;
 		
 		
 	}
@@ -44,8 +46,19 @@ public class VizEvent {
 	public String getStartTimeAsString(){
 		return new SimpleDateFormat("yyyy-M-dd,HH:mm:ss").format(startTime);
 	}
+	
+	public void setDuration(int eventDuration) {
+		duration = eventDuration * 1000;
+		
+	}
+	
+	public long getDurationMillis(){
+		return (long)duration;
+	}
 
 	private long convertToMillis(Date _time) {
 		return _time.getTime();
 	}
+
+
 }

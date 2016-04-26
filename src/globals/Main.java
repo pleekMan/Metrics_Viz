@@ -18,7 +18,7 @@ public class Main extends PApplet {
 	}
 
 	public void setup() {
-		frameRate(5);
+		//frameRate(5);
 		setPAppletSingleton();
 
 		vizManager = new VizManager();
@@ -30,6 +30,7 @@ public class Main extends PApplet {
 		//drawBackLines();
 		//drawMouseCoordinates();
 		
+		vizManager.update();
 		vizManager.render();
 
 	}
