@@ -1,6 +1,5 @@
 package viz;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,6 +8,7 @@ import globals.Main;
 import globals.PAppletSingleton;
 import processing.core.PVector;
 
+@SuppressWarnings("static-access")
 public class VizManager {
 
 	Main p5;
@@ -17,12 +17,16 @@ public class VizManager {
 	public static SimpleDateFormat dateFormatter;
 
 	boolean dataLoaded;
+	int differentEventCount;
 
-	long startMillis;
-	long totalMillis;
-	
-	PVector timelineStart;
-	PVector timelineStop;
+	public static long startMillis;
+	public static long totalMillis;
+
+	public static PVector timelineStart;
+	public static PVector timelineStop;
+
+	public String[] eventName;
+	public int[] eventNameId;
 
 	public VizManager() {
 
@@ -38,26 +42,27 @@ public class VizManager {
 	}
 
 	public void update() {
-		//timelineStart.set(p5.mouseX, 100);
-		//timelineStop.set(p5.width - timelineStart.x, 100);
+		timelineStart.set(p5.mouseX, 100);
+		timelineStop.set(p5.width - timelineStart.x, 100);
+		/*
+		 * for (int i = 0; i < events.size(); i++) {
+		 * events.get(i).setVizLimits(timelineStart.x, timelineStop.x); }
+		 */
 	}
 
 	public void render() {
 
-		p5.stroke(200);
-		p5.fill(250);
+		if (dataLoaded) {
 
-		for (int i = 0; i < events.size(); i++) {
-			VizEvent event = events.get(i);
+			p5.stroke(200);
+			p5.fill(250);
 
-			String name = event.getName();
-			float eventStart = mapLongs(event.getStartTimeMillis(), startMillis, (startMillis + totalMillis), timelineStart.x, timelineStop.x);
-			float eventStop = mapLongs(event.getStartTimeMillis() + event.getDurationMillis(), startMillis, (startMillis + totalMillis), timelineStart.x, timelineStop.x);
-			
-			float yPos = ( (float)p5.height / events.size()) * i;
-			p5.line(eventStart, yPos, eventStop, yPos);
-			p5.text(name, eventStart,  yPos + 20);
+			for (int i = 0; i < events.size(); i++) {
+				VizEvent event = events.get(i);
+				event.render();
+			}
 
+			renderTotalEvents();
 		}
 	}
 
@@ -68,7 +73,7 @@ public class VizManager {
 
 	private void buildData() {
 		p5.println(p5.sketchPath());
-		String[] eventInfo = p5.loadStrings("data/nombre.txt");
+		String[] eventInfo = p5.loadStrings("data/info.txt");
 		String[] data = p5.loadStrings("data/log.txt");
 
 		if (data != null || eventInfo != null) {
@@ -77,14 +82,23 @@ public class VizManager {
 			ArrayList<String> eventsName = new ArrayList<String>();
 			ArrayList<Integer> eventsDuration = new ArrayList<Integer>();
 
+			differentEventCount = eventInfo.length - 1;
 			for (int i = 1; i < eventInfo.length; i++) {
 				String[] lineData = p5.split(eventInfo[i], ',');
 				eventsName.add(lineData[0]);
 				eventsDuration.add(Integer.parseInt(lineData[1]));
 			}
-			
-			
-			
+
+			// STORE EVENT INFO IN GLOBAL ARRAY
+			eventName = new String[eventsName.size()];
+			eventNameId = new int[eventsName.size()];
+			for (int i = 0; i < eventName.length; i++) {
+				eventName[i] = eventsName.get(i);
+				eventNameId[i] = i;
+			}
+			// p5.println(eventName);
+			// p5.println(eventNameId);
+
 			// LOAD DATE/MESSAGE DATA
 			SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-M-dd,HH:mm:ss");
 
@@ -94,21 +108,22 @@ public class VizManager {
 
 				try {
 					Date newDate = new Date();
-					
+
 					newDate = dateFormatter.parse(lineData[0] + "," + lineData[1]);
-					VizEvent newEventData = new VizEvent(lineData[2], newDate, i);
-					
+					VizEvent newEventData = new VizEvent(lineData[2], newDate);
+
 					// SET EVENT DURATION (FROM eventInfo data)
 					for (int j = 0; j < eventsName.size(); j++) {
 						if (newEventData.getName().equals(eventsName.get(j))) {
 							newEventData.setDuration(eventsDuration.get(j).intValue());
+							newEventData.setId(j);
 							break;
 						}
-					}
-					
-					events.add(newEventData);
 
-					dataLoaded = true;
+						events.add(newEventData);
+
+						dataLoaded = true;
+					}
 
 				} catch (Exception e) {
 					p5.println("Unable to parse Date, dude..!!");
@@ -121,17 +136,68 @@ public class VizManager {
 			p5.println("--|| DATA NOT LOADED, DUDE..!! (File not Found, maybe..) ");
 			p5.println("--|| TRY LOADING IT MANUALLY");
 		}
+		
 	}
-
 
 	private void buildViz() {
 
 		startMillis = events.get(0).getStartTimeMillis();
 		totalMillis = events.get(events.size() - 1).getStartTimeMillis() - startMillis;
 		p5.println("--|| Timeline starts at: " + startMillis + " and lasts for " + totalMillis);
-		
-		timelineStart = new PVector(300,100);
-		timelineStop = new PVector(p5.width - timelineStart.x,100);
+
+		timelineStart = new PVector(300, 100);
+		timelineStop = new PVector(p5.width - timelineStart.x, 100);
+
+	}
+
+	private void renderTotalEvents() {
+
+		int[] eventCounts = new int[differentEventCount];
+
+		// SUM THE EVENTS COUNT
+		for (int i = 0; i < events.size(); i++) {
+			//p5.println(i + ": " + events.get(i).getId());
+			eventCounts[events.get(i).getId()] += 1;
+		}
+
+		// DRAW AS PIE CHART (LABELS MISSING)
+		p5.pushMatrix();
+		p5.translate(p5.width * 0.5f, p5.height * 0.5f);
+		for (int i = 0; i < eventCounts.length; i++) {
+			float pieSize = (eventCounts[i] / (float) events.size()) * p5.TWO_PI;
+
+			p5.noStroke();
+			p5.fill(50 + (50 * i), 0, 0);
+
+			p5.arc(0, 0, 200, 200, 0, pieSize);
+
+			p5.rotate(pieSize);
+		}
+		p5.popMatrix();
+
+		// DRAW AS BARS
+		p5.rectMode(p5.CORNER);
+		int barsStartY = 100;
+		int barsStopY = 300;
+		float barY = barsStartY;
+
+		for (int i = 0; i < eventCounts.length; i++) {
+			float ratio = eventCounts[i] / (float) events.size();
+			float barSize = ratio * (barsStopY - barsStartY);
+
+			p5.noStroke();
+			p5.fill(50, 0, (50 + (50 * i)));
+			p5.rect(0, barY, 30, barSize);
+
+			p5.fill(200);
+			p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%", 35, barY + 15);
+			p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%", 200, 20 + 20 * i);
+
+			p5.stroke(255);
+			p5.line(0, barY, 70, barY);
+
+			barY += barSize;
+		}
 
 	}
 
@@ -143,7 +209,7 @@ public class VizManager {
 		}
 	}
 
-	public float mapLongs(long value, long start1, long stop1, float start2, float stop2) {
+	static public float mapLongs(long value, long start1, long stop1, float start2, float stop2) {
 		return start2 + (stop2 - start2) * ((value - start1) / (float) (stop1 - start1));
 	}
 

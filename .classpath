@@ -3,7 +3,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/controlP5/controlP5.jar"/>
-	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/core.jar"/>
+	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/core.jar" sourcepath="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/core.jar"/>
 	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/gluegen-rt.jar"/>
 	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/gluegen-rt-natives-linux-amd64.jar"/>
 	<classpathentry kind="lib" path="D:/eclipseWorkSpace/libraries/processing/core 3.0.2/gluegen-rt-natives-linux-armv6hf.jar"/>

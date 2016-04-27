@@ -26,7 +26,7 @@ public class Main extends PApplet {
 	}
 
 	public void draw() {
-		background(50);
+		background(25);
 		//drawBackLines();
 		//drawMouseCoordinates();
 		
