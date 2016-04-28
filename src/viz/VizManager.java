@@ -6,6 +6,7 @@ import java.util.Date;
 
 import globals.Main;
 import globals.PAppletSingleton;
+import processing.core.PFont;
 import processing.core.PVector;
 
 @SuppressWarnings("static-access")
@@ -20,13 +21,22 @@ public class VizManager {
 	int differentEventCount;
 
 	public static long startMillis;
-	public static long totalMillis;
+	public static long stopMillis;
 
 	public static PVector timelineStart;
 	public static PVector timelineStop;
+	public static float blockHeight;
 
 	public String[] eventName;
 	public int[] eventNameId;
+
+	ColorPalette palette;
+	static public int colorBack;
+	static public int colorMiddle;
+	static public int colorFore;
+	
+	PFont fontLight;
+	PFont fontMedium;
 
 	public VizManager() {
 
@@ -37,13 +47,14 @@ public class VizManager {
 
 		dateFormatter = new SimpleDateFormat("yyyy-M-dd,HH:mm:ss");
 
+		createColorPalettes();
 		buildData();
 		buildViz();
 	}
 
 	public void update() {
-		timelineStart.set(p5.mouseX, 100);
-		timelineStop.set(p5.width - timelineStart.x, 100);
+		// timelineStart.set(p5.mouseX, 100);
+		// timelineStop.set(p5.width - timelineStart.x, 100);
 		/*
 		 * for (int i = 0; i < events.size(); i++) {
 		 * events.get(i).setVizLimits(timelineStart.x, timelineStop.x); }
@@ -64,6 +75,17 @@ public class VizManager {
 
 			renderTotalEvents();
 		}
+		
+		renderGui();
+
+		// TEST COLOR PALETTE
+		p5.rectMode(p5.CORNER);
+		p5.noStroke();
+		for (int i = 0; i < palette.getCount(); i++) {
+			p5.fill(palette.getColor(i));
+			p5.rect(i * 20, 0, 20, 20);
+		}
+
 	}
 
 	private String[] loadFile() {
@@ -117,16 +139,15 @@ public class VizManager {
 						if (newEventData.getName().equals(eventsName.get(j))) {
 							newEventData.setDuration(eventsDuration.get(j).intValue());
 							newEventData.setId(j);
+							newEventData.setColor(palette.getColor(i % palette.getCount()));
 							break;
 						}
-
-						events.add(newEventData);
-
-						dataLoaded = true;
 					}
+					events.add(newEventData);
+					dataLoaded = true;
 
 				} catch (Exception e) {
-					p5.println("Unable to parse Date, dude..!!");
+					p5.println("Unable to parse Data, dude..!!");
 					dataLoaded = false;
 					e.printStackTrace();
 				}
@@ -136,31 +157,97 @@ public class VizManager {
 			p5.println("--|| DATA NOT LOADED, DUDE..!! (File not Found, maybe..) ");
 			p5.println("--|| TRY LOADING IT MANUALLY");
 		}
-		
+
+		// SET EVENT ACTIVE DURATION (BASED ON NEXT EVENT START TIME)
+		for (int i = 0; i < events.size() - 1; i++) {
+			VizEvent thisEvent = events.get(i);
+			thisEvent.setActiveDurationInMillis((int) (events.get(i + 1).getStartTimeMillis() - thisEvent.getStartTimeMillis()));
+		}
+		events.get(events.size() - 1).setActiveDurationInMillis((int) events.get(events.size() - 1).getDurationMillis());
+
+		// PRINT OUT EVENTS
+		/*
+		 * for (int i = 0; i < events.size(); i++) { VizEvent actualEvent =
+		 * events.get(i); p5.println("--|| " + actualEvent.getId() + " :: " +
+		 * actualEvent.getStartTimeAsString() + " - " + actualEvent.getName());
+		 * }
+		 */
+
 	}
 
 	private void buildViz() {
 
 		startMillis = events.get(0).getStartTimeMillis();
-		totalMillis = events.get(events.size() - 1).getStartTimeMillis() - startMillis;
-		p5.println("--|| Timeline starts at: " + startMillis + " and lasts for " + totalMillis);
+		stopMillis = events.get(events.size() - 1).getStartTimeMillis();
+		p5.println("--|| Timeline starts at: " + startMillis + " to " + stopMillis + " and lasts for " + (events.get(events.size() - 1).getStartTimeMillis() - startMillis));
 
-		timelineStart = new PVector(300, 100);
-		timelineStop = new PVector(p5.width - timelineStart.x, 100);
+		timelineStart = new PVector(80, 160);
+		timelineStop = new PVector(p5.width - timelineStart.x, 450);
+		blockHeight = (timelineStop.y - timelineStart.y) / eventName.length;
+		
+		fontLight = p5.loadFont("DINPro-Light-50.vlw");
+		fontMedium = p5.loadFont("DINPro-Medium-50.vlw");
+		
+
+	}
+
+	private void createColorPalettes() {
+
+		colorBack = p5.color(0xFF2A363B);
+		colorMiddle = p5.color(0xFF4f595E);
+		colorFore = p5.color(0xFF737B7f);
+
+		int[] newColors = new int[7];
+
+		newColors[0] = p5.color(0xFF3EACA8);
+		newColors[1] = p5.color(0xFFA2D4AB);
+		newColors[2] = p5.color(0xFF99B898);
+		newColors[3] = p5.color(0xFFFECEA8);
+		newColors[4] = p5.color(0xFFFF847C);
+		newColors[5] = p5.color(0xFFE84A5F);
+		newColors[6] = p5.color(0xFF547a82);
+
+		palette = new ColorPalette(newColors);
+	}
+
+	private void renderGui() {
+
+		p5.rectMode(p5.CORNER);
+		p5.textFont(fontMedium, 15);
+
+		p5.stroke(colorMiddle);
+		p5.line(timelineStart.x, timelineStart.y - 40, timelineStart.x, timelineStop.y + 40);
+		p5.line(timelineStop.x, timelineStart.y - 40, timelineStop.x, timelineStop.y + 40);
+
+		// HORIZONTAL LINES NAD EVENT NAME
+		for (int i = 0; i < eventName.length; i++) {
+			p5.stroke(colorMiddle);
+
+			float lineY = timelineStart.y + (blockHeight * i);
+			p5.line(timelineStart.x, lineY, timelineStop.x, lineY);
+
+			p5.fill(colorMiddle, 127);
+			p5.rect(timelineStart.x, lineY, 100, 20);
+			p5.fill(230);
+			p5.text(eventName[i], timelineStart.x + 5, lineY + 15);
+		}
+		p5.line(timelineStart.x, timelineStop.y, timelineStart.x, timelineStart.y);
 
 	}
 
 	private void renderTotalEvents() {
 
 		int[] eventCounts = new int[differentEventCount];
+		
 
 		// SUM THE EVENTS COUNT
 		for (int i = 0; i < events.size(); i++) {
-			//p5.println(i + ": " + events.get(i).getId());
+			// p5.println(i + ": " + events.get(i).getId());
 			eventCounts[events.get(i).getId()] += 1;
 		}
 
 		// DRAW AS PIE CHART (LABELS MISSING)
+		/*
 		p5.pushMatrix();
 		p5.translate(p5.width * 0.5f, p5.height * 0.5f);
 		for (int i = 0; i < eventCounts.length; i++) {
@@ -174,6 +261,7 @@ public class VizManager {
 			p5.rotate(pieSize);
 		}
 		p5.popMatrix();
+		*/
 
 		// DRAW AS BARS
 		p5.rectMode(p5.CORNER);
@@ -203,9 +291,10 @@ public class VizManager {
 
 	public void keyPressed(char _key) {
 
+		// PRINT OUT EVENTS
 		for (int i = 0; i < events.size(); i++) {
 			VizEvent actualEvent = events.get(i);
-			p5.println(actualEvent.getStartTimeAsString() + " - " + actualEvent.getName());
+			p5.println("--|| " + actualEvent.getId() + " :: " + actualEvent.getStartTimeAsString() + " - " + actualEvent.getName());
 		}
 	}
 

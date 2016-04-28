@@ -12,8 +12,10 @@ public class Main extends PApplet {
 	
 	VizManager vizManager;
 	
+	PImage backImage;
+	
 	public void settings() {
-		size(800, 500);
+		size(1000, 680);
 		
 	}
 
@@ -23,15 +25,18 @@ public class Main extends PApplet {
 
 		vizManager = new VizManager();
 
+		backImage = loadImage("bluePrint.png");
 	}
 
 	public void draw() {
-		background(25);
+		background(VizManager.colorBack);
+		//background(backImage);
 		//drawBackLines();
-		//drawMouseCoordinates();
 		
 		vizManager.update();
 		vizManager.render();
+		
+		drawMouseCoordinates();
 
 	}
 
