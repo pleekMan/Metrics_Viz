@@ -118,6 +118,10 @@ public class VizEvent {
 		return id;
 	}
 	
+	public boolean wasFinished(){
+		return activeDuration >= duration;
+	}
+	
 	public void setColor(int _c){
 		color = _c;
 	}
