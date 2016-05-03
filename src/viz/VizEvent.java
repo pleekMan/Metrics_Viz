@@ -21,6 +21,12 @@ public class VizEvent {
 	int activeDuration;
 	
 	int color;
+	
+	double blockStart;
+	double blockStop;
+	double blockActiveStop;
+	double blockPosY;
+	
 
 	//public static int blockHeight;
 
@@ -44,34 +50,53 @@ public class VizEvent {
 	}
 
 	public void update() {
+		blockStart = VizManager.mapDoubles((double)getStartTimeMillis(), VizManager.startMillis, VizManager.stopMillis, VizManager.timelineStart.x, VizManager.timelineStop.x);
+		blockStop = VizManager.mapDoubles(getStartTimeMillis() + getDurationMillis(), VizManager.startMillis, VizManager.stopMillis, VizManager.timelineStart.x, VizManager.timelineStop.x);
+		blockActiveStop = VizManager.mapDoubles(getStartTimeMillis() + activeDuration, VizManager.startMillis, VizManager.stopMillis,VizManager.timelineStart.x, VizManager.timelineStop.x);
+		blockPosY = VizManager.timelineStart.y + (VizManager.blockHeight * id);
 
 	}
 
 	public void render() {
-		float vizStart = VizManager.timelineStart.x;
-		float vizStop = VizManager.timelineStop.x;
 
-		float blockStart = VizManager.mapLongs(getStartTimeMillis(), VizManager.startMillis, VizManager.stopMillis, vizStart, vizStop);
-		float blockStop = VizManager.mapLongs(getStartTimeMillis() + getDurationMillis(), VizManager.startMillis, VizManager.stopMillis, vizStart, vizStop);
-		float blockActiveStop = VizManager.mapLongs(getStartTimeMillis() + activeDuration, VizManager.startMillis, VizManager.stopMillis,vizStart, vizStop);
 		
-		float yPos = VizManager.timelineStart.y + (VizManager.blockHeight * id);
 
 		p5.rectMode(p5.CORNERS);
-		p5.noStroke();
-		
+		if (isOver(p5.mouseX, p5.mouseY)) {
+			p5.strokeWeight(3);
+			p5.stroke(200);
+		} else {
+			p5.strokeWeight(1);
+			p5.noStroke();
+		}
 		// ACTIVE BLOCK
 		p5.fill(color, 20);
-		p5.rect(blockStart, yPos, blockStop, yPos + VizManager.blockHeight, 5);
+		p5.rect((float)blockStart, (float)blockPosY, (float)blockStop, (float)(blockPosY + VizManager.blockHeight), 5);
 		//p5.text(name, blockStart + 5, yPos + 20);
 		
 		// ACTIVE BLOCK
 		p5.fill(color);
 		//p5.stroke(0, 255, 127 - (20 * id));
-		p5.rect(blockStart, yPos, blockActiveStop, yPos + VizManager.blockHeight, 5);
-
-		// p5.line(eventStart, yPos, eventStop, yPos);
-		//
+		p5.rect((float)blockStart, (float)blockPosY, (float)blockActiveStop, (float)(blockPosY + VizManager.blockHeight), 5);
+		
+		// HOVER LABEL
+		if (isOver(p5.mouseX, p5.mouseY)) {
+			p5.pushStyle();
+			
+			p5.rectMode(p5.CORNER);
+			p5.textFont(VizManager.fontMedium);
+			p5.textSize(15);
+			//p5.stroke(200);
+			p5.noStroke();
+			p5.fill(0,127);
+			p5.rect(p5.mouseX, p5.mouseY, p5.textWidth(getStartTimeAsString()) + 5, -20, 5);
+			
+			p5.fill(200);
+			p5.noStroke();
+			p5.text(getStartTimeAsString(), p5.mouseX + 3, p5.mouseY - 4);
+			
+			p5.popStyle();
+		}
 
 	}
 
@@ -128,6 +153,14 @@ public class VizEvent {
 
 	private long convertToMillis(Date _time) {
 		return _time.getTime();
+	}
+	
+	public boolean isOver(float _x, float _y){
+		return _x > blockStart && _x < blockStop && _y > blockPosY && _y < blockPosY + VizManager.blockHeight;
+	}
+	
+	public boolean isInsideVizRange(double minRange, double maxRange){
+		return blockStop > minRange && blockStart < maxRange;
 	}
 
 	protected Main getP5() {

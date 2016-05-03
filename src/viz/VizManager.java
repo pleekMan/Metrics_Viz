@@ -9,6 +9,8 @@ import globals.PAppletSingleton;
 import processing.core.PFont;
 import processing.core.PVector;
 
+import controlP5.*;
+
 @SuppressWarnings("static-access")
 public class VizManager {
 
@@ -20,16 +22,18 @@ public class VizManager {
 	boolean dataLoaded;
 	int differentEventCount;
 
-	public static long startMillis;
-	public static long stopMillis;
+	public static double startMillis;
+	public static double stopMillis;
+	public static double startMillisInit;
+	public static double stopMillisInit;
 
 	public static PVector timelineStart;
 	public static PVector timelineStop;
 	public static float blockHeight;
-	
+
 	public PVector totalsGraphStart;
 	public PVector totalsGraphStop;
-	
+
 	public String[] eventName;
 	public int[] eventNameId;
 
@@ -38,8 +42,11 @@ public class VizManager {
 	static public int colorMiddle;
 	static public int colorFore;
 
-	PFont fontLight;
-	PFont fontMedium;
+	public static PFont fontLight;
+	public static PFont fontMedium;
+
+	ControlP5 controlGui;
+	Range timeRangeSlider;
 
 	public VizManager() {
 
@@ -56,12 +63,32 @@ public class VizManager {
 	}
 
 	public void update() {
-		// timelineStart.set(p5.mouseX, 100);
-		// timelineStop.set(p5.width - timelineStart.x, 100);
+
+		// stopMillis = mapDoubles((double)p5.mouseX, 0D, (double)p5.width,
+		// stopMillisInit, stopMillisInit - ((stopMillisInit - startMillis) *
+		// 0.99D));
+
+		// p5.text("mapLongs: " + mapLongs((long)p5.mouseX,0, p5.width,
+		// (float)stopMillisInit, (float)(stopMillisInit + 10000000) ), 10,
+		// 140);
+		// p5.text("P5 map: " + p5.map((long)p5.mouseX,0, p5.width,
+		// (float)stopMillisInit, (float)(stopMillisInit + 10000000) ), 10,
+		// 160);
+
+		// PRUEBAS
 		/*
-		 * for (int i = 0; i < events.size(); i++) {
-		 * events.get(i).setVizLimits(timelineStart.x, timelineStop.x); }
+		 * long a = stopMillisInit - 1000L; long b = stopMillisInit; double c =
+		 * ((double)a / b);
 		 */
+		/*
+		 * double start = startMillisInit + 1000L; double stop = stopMillisInit;
+		 * double res = (double)start / stop; double mapped =
+		 * mapDoubles((double)p5.mouseX, 0D, (double)p5.width, start, stop);
+		 * //long resultado = (long)p5.map(p5.mouseX, 0, p5.width,
+		 * stopMillisInit, stopMillisInit + 100L); //p5.text((float)res, 200,
+		 * 20); //System.out.println((long)mapped);
+		 */
+
 	}
 
 	public void render() {
@@ -73,6 +100,7 @@ public class VizManager {
 
 			for (int i = 0; i < events.size(); i++) {
 				VizEvent event = events.get(i);
+				event.update();
 				event.render();
 			}
 
@@ -182,20 +210,28 @@ public class VizManager {
 	private void buildViz() {
 
 		startMillis = events.get(0).getStartTimeMillis();
-		stopMillis = events.get(events.size() - 1).getStartTimeMillis();
+		stopMillis = events.get(events.size() - 1).getStartTimeMillis() + events.get(events.size() - 1).duration;
+		startMillisInit = startMillis;
+		stopMillisInit = stopMillis;
 		p5.println("--|| Timeline starts at: " + startMillis + " to " + stopMillis + " and lasts for " + (events.get(events.size() - 1).getStartTimeMillis() - startMillis));
 
 		timelineStart = new PVector(80, 160);
 		timelineStop = new PVector(p5.width - timelineStart.x, 400);
 		blockHeight = (timelineStop.y - timelineStart.y) / eventName.length;
-		
-		totalsGraphStart = new PVector(timelineStart.x + 200,timelineStop.y + 80);
-		totalsGraphStop = new PVector(totalsGraphStart.x + 200,totalsGraphStart.y + 100);
 
-		
+		totalsGraphStart = new PVector(timelineStart.x + 200, timelineStop.y + 80);
+		totalsGraphStop = new PVector(totalsGraphStart.x + 200, totalsGraphStart.y + 100);
+
 		fontLight = p5.loadFont("DINPro-Light-50.vlw");
 		fontMedium = p5.loadFont("DINPro-Medium-50.vlw");
 
+		// CONTROL GUI
+		// controlEvent() method is at Main(PApplet) (controlP5 works this way)
+		// and forwarded here
+		controlGui = new ControlP5(p5);
+
+		timeRangeSlider = controlGui.addRange("timeRange");
+		timeRangeSlider.setPosition(80, 140).setBroadcast(false).setSize(840, 10).setRange(0, 1).setRangeValues(0, 1).setBroadcast(true);
 	}
 
 	private void createColorPalettes() {
@@ -215,6 +251,7 @@ public class VizManager {
 		newColors[6] = p5.color(0xFF547a82);
 
 		palette = new ColorPalette(newColors);
+
 	}
 
 	private void renderGui() {
@@ -240,16 +277,25 @@ public class VizManager {
 		}
 		p5.line(timelineStart.x, timelineStop.y, timelineStart.x, timelineStart.y);
 
+		// TIMELINE OVERFLOW MASKS
+		p5.fill(colorBack);
+		p5.noStroke();
+		p5.rect(0, timelineStart.y - 20, timelineStart.x, timelineStop.y - timelineStart.y + 40);
+		p5.rect(timelineStop.x + 1, timelineStart.y - 20, timelineStop.x - timelineStart.x, timelineStop.y + 40);
+
 	}
 
 	private void renderTotalEvents() {
 
 		int[] eventCounts = new int[differentEventCount];
-
+		int eventsDislayed = 0;
 		// SUM THE EVENTS COUNT
 		for (int i = 0; i < events.size(); i++) {
 			// p5.println(i + ": " + events.get(i).getId());
-			eventCounts[events.get(i).getId()] += 1;
+			if (events.get(i).isInsideVizRange(timelineStart.x, timelineStop.x)) {
+				eventCounts[events.get(i).getId()] += 1;
+				eventsDislayed++;
+			}
 		}
 
 		// DRAW AS PIE CHART (LABELS MISSING)
@@ -268,23 +314,25 @@ public class VizManager {
 		// DRAW AS BARS
 		p5.rectMode(p5.CORNER);
 		p5.textAlign(p5.LEFT);
-		//int barsStartY = 100;
-		//int barsStopY = 300;
+		// int barsStartY = 100;
+		// int barsStopY = 300;
 		float barX = timelineStart.x;
 		float barY = timelineStart.y - 60;
 		float barHeight = 20;
 
 		for (int i = 0; i < eventCounts.length; i++) {
-			float ratio = eventCounts[i] / (float) events.size();
+			// float ratio = eventCounts[i] / (float) events.size();
+			float ratio = eventCounts[i] / (float) eventsDislayed;
 			float barSize = ratio * (timelineStop.x - timelineStart.x);
 
 			p5.noStroke();
 			p5.fill(events.get(i).color);
-			p5.rect(barX,barY, barSize, barHeight);
+			p5.rect(barX, barY, barSize, barHeight);
 
 			p5.fill(200);
 			p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%", barX + 5, barY - 10);
-			//p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%", 200, 20 + 20 * i);
+			// p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%",
+			// 200, 20 + 20 * i);
 
 			p5.stroke(255);
 			p5.line(barX, barY + barHeight, barX, barY - 20);
@@ -308,7 +356,7 @@ public class VizManager {
 				eventCounts[thisEvent.getId()][1] += 1;
 			}
 		}
-		
+
 		// DRAW AS BARS
 		p5.rectMode(p5.CORNER);
 		float barHeight = totalsGraphStop.y - totalsGraphStart.y;
@@ -319,128 +367,144 @@ public class VizManager {
 			float barSize = ratio * (totalsGraphStop.x - totalsGraphStart.x);
 			float activeRatio = eventCounts[i][0] / (float) events.size();
 			float activeBarSize = activeRatio * (totalsGraphStop.x - totalsGraphStart.x);
-			
-			// BAR BACKG = (CAN ONLY SEE) INACTIVE PORTION 
+
+			// BAR BACKG = (CAN ONLY SEE) INACTIVE PORTION
 			p5.noStroke();
-			p5.fill(events.get(i).color,127);
+			p5.fill(events.get(i).color, 127);
 			p5.rect(barX, totalsGraphStart.y, barSize, barHeight);
-			
+
 			// VAR ACTIVE PORTION
 			p5.fill(events.get(i).color);
 			p5.rect(barX, totalsGraphStart.y, activeBarSize, barHeight);
-			
+
 			p5.fill(250);
 			p5.text(eventName[i] + " - " + p5.nf(ratio * 100, 0, 2) + "%", barX, totalsGraphStart.y - 15);
-			
-			p5.text(p5.nf(   (((float)eventCounts[i][0]) / (eventCounts[i][0] + eventCounts[i][1])) * 100,   0, 2) + "%", barX, totalsGraphStop.y + 20);
-			p5.text(p5.nf(   (((float)eventCounts[i][1]) / (eventCounts[i][0] + eventCounts[i][1])) * 100,   0, 2) + "%", barX + 100, totalsGraphStop.y + 20);
 
-			
+			p5.text(p5.nf((((float) eventCounts[i][0]) / (eventCounts[i][0] + eventCounts[i][1])) * 100, 0, 2) + "%", barX, totalsGraphStop.y + 20);
+			p5.text(p5.nf((((float) eventCounts[i][1]) / (eventCounts[i][0] + eventCounts[i][1])) * 100, 0, 2) + "%", barX + 100, totalsGraphStop.y + 20);
+
 			barX += barSize;
 		}
 
 	}
-	
+
 	private void renderTotalsFinished() {
 
 		// 2D ARRAY TO HOLD [ EVENT ][ NOT/FINISHED WATCHING]
 		int[][] eventCounts = new int[differentEventCount][2];
+		int[] eventsDisplayed = new int[eventCounts.length];
 
 		// SUM THE FINISHED / NOT FINISHED EVENTS COUNT
 		for (int i = 0; i < events.size(); i++) {
 			VizEvent thisEvent = events.get(i);
-			if (thisEvent.wasFinished()) {
-				eventCounts[thisEvent.getId()][0] += 1;
-			} else {
-				eventCounts[thisEvent.getId()][1] += 1;
+			if (thisEvent.isInsideVizRange(timelineStart.x, timelineStop.x)) {
+				eventsDisplayed[thisEvent.getId()]++;
+				if (thisEvent.wasFinished()) {
+					eventCounts[thisEvent.getId()][0] += 1;
+				} else {
+					eventCounts[thisEvent.getId()][1] += 1;
+				}
 			}
 		}
-		
+
 		// DRAW AS BARS
 		p5.rectMode(p5.CORNER);
 		p5.textSize(12);
-		
+
 		// GLOBALS
-		float barHeight = (totalsGraphStop.y - totalsGraphStart.y)/ eventName.length;
+		float barHeight = (totalsGraphStop.y - totalsGraphStart.y) / eventName.length;
 		float barY = totalsGraphStart.y;
-		
-		// OVERALL ACTIVE/NON BAR 
+
+		// OVERALL ACTIVE/NON BAR
 		float overallFinishedRatio = 0;
 		for (int i = 0; i < eventCounts.length; i++) {
 			overallFinishedRatio += eventCounts[i][0];
 		}
 		overallFinishedRatio = overallFinishedRatio / events.size();
-		
+
 		p5.fill(200);
 		p5.textAlign(p5.CENTER);
 		p5.text("CONCLUIDOS", totalsGraphStart.x, totalsGraphStart.y - 40);
 		p5.text("NO CONCLUIDOS", totalsGraphStop.x, totalsGraphStart.y - 40);
 
-		
 		p5.fill(colorMiddle);
 		p5.rect(totalsGraphStart.x, totalsGraphStart.y - 30, totalsGraphStop.x - totalsGraphStart.x, barHeight);
 		p5.fill(200);
 		p5.rect(totalsGraphStart.x, totalsGraphStart.y - 30, overallFinishedRatio * (totalsGraphStop.x - totalsGraphStart.x), barHeight);
-		
+
 		p5.textAlign(p5.RIGHT);
 		p5.text(p5.nf(overallFinishedRatio * 100, 0, 2) + " %", totalsGraphStart.x - 5, totalsGraphStart.y - 30 + (barHeight * 0.75f));
 		p5.textAlign(p5.LEFT);
-		p5.text(p5.nf( (1 - overallFinishedRatio) * 100,   0, 2) + " %", totalsGraphStop.x + 5, totalsGraphStart.y - 30 + (barHeight * 0.75f));
-		
-		
-		
+		p5.text(p5.nf((1 - overallFinishedRatio) * 100, 0, 2) + " %", totalsGraphStop.x + 5, totalsGraphStart.y - 30 + (barHeight * 0.75f));
+
 		// SINGLE EVENT OVERALL/NON BAR
 		for (int i = 0; i < eventCounts.length; i++) {
-			//float ratio = (eventCounts[i][0] + eventCounts[i][1]) / eventCounts[i].length;
+			// float ratio = (eventCounts[i][0] + eventCounts[i][1]) /
+			// eventCounts[i].length;
 			float barSize = totalsGraphStop.x - totalsGraphStart.x;
-			float activeRatio = eventCounts[i][0] / (eventCounts[i][0] + (float)eventCounts[i][1]);
+			float activeRatio = eventCounts[i][0] / (eventCounts[i][0] + (float) eventCounts[i][1]);
 			float activeBarSize = activeRatio * barSize;
-			
-			// BAR BACKG = (CAN ONLY SEE) INACTIVE PORTION 
+
+			// BAR BACKG = (CAN ONLY SEE) INACTIVE PORTION
 			p5.noStroke();
-			p5.fill(events.get(i).color,50);
+			p5.fill(events.get(i).color, 50);
 			p5.rect(totalsGraphStart.x, barY, barSize, barHeight);
-			
+
 			// VAR ACTIVE PORTION
 			p5.fill(events.get(i).color);
 			p5.rect(totalsGraphStart.x, barY, activeBarSize, barHeight);
-			
+
 			// EVENT NAME
 			p5.textAlign(p5.LEFT);
 			p5.fill(250);
 			p5.text(eventName[i], timelineStart.x, barY + (barHeight * 0.75f));
-			
+
 			// %
 			p5.textAlign(p5.RIGHT);
 			p5.text(p5.nf(activeRatio * 100, 0, 2) + " %", totalsGraphStart.x - 5, barY + (barHeight * 0.75f));
 			p5.textAlign(p5.LEFT);
-			p5.text(p5.nf( (1 - activeRatio) * 100,   0, 2) + " %", totalsGraphStop.x + 5, barY + (barHeight * 0.75f));
-			
+			p5.text(p5.nf((1 - activeRatio) * 100, 0, 2) + " %", totalsGraphStop.x + 5, barY + (barHeight * 0.75f));
+
 			p5.stroke(colorFore);
 			p5.line(timelineStart.x, barY, totalsGraphStop.x + 20, barY);
-			
+
 			barY += barHeight;
 		}
 
+	}
+
+	static public float mapLongs(long value, long start1, long stop1, float start2, float stop2) {
+		return start2 + (stop2 - start2) * ((value - start1) / (float) (stop1 - start1));
+	}
+
+	static public double mapDoubles(double value, double start1, double stop1, double start2, double stop2) {
+		return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 	}
 
 	public void keyPressed(char _key) {
 
 		// PRINT OUT EVENTS
 		/*
-		for (int i = 0; i < events.size(); i++) {
-			VizEvent actualEvent = events.get(i);
-			p5.println("--|| " + actualEvent.getId() + " :: " + actualEvent.getStartTimeAsString() + " - " + actualEvent.getName());
-		}
-		*/
-		
-		if(_key == 'd'){
-			
+		 * for (int i = 0; i < events.size(); i++) { VizEvent actualEvent =
+		 * events.get(i); p5.println("--|| " + actualEvent.getId() + " :: " +
+		 * actualEvent.getStartTimeAsString() + " - " + actualEvent.getName());
+		 * }
+		 */
+
+		if (_key == 'd') {
+
 		}
 	}
 
-	static public float mapLongs(long value, long start1, long stop1, float start2, float stop2) {
-		return start2 + (stop2 - start2) * ((value - start1) / (float) (stop1 - start1));
+	public void controlEvent(ControlEvent event) {
+		if (event.isFrom("timeRange")) {
+			float rangeMin = event.getController().getArrayValue(0);
+			float rangeMax = event.getController().getArrayValue(1);
+			stopMillis = mapDoubles((double) rangeMax, 0D, 1.0D, stopMillisInit - ((stopMillisInit - startMillis) * 0.99D), stopMillisInit);
+			startMillis = mapDoubles((double) rangeMin, 0D, 1.0D, startMillisInit, startMillisInit + ((stopMillisInit - startMillis) * 0.99D));
+
+			// p5.println("Sliding");
+		}
 	}
 
 	protected Main getP5() {

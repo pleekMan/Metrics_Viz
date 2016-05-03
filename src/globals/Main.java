@@ -36,7 +36,7 @@ public class Main extends PApplet {
 		vizManager.update();
 		vizManager.render();
 		
-		drawMouseCoordinates();
+		//drawMouseCoordinates();
 
 	}
 
@@ -80,6 +80,10 @@ public class Main extends PApplet {
 
 	}
 	
+	public void controlEvent(ControlEvent event){
+		vizManager.controlEvent(event);
+	}
+	
 
 	public static void main(String args[]) {
 		/*
@@ -95,5 +99,6 @@ public class Main extends PApplet {
 	private void setPAppletSingleton() {
 		PAppletSingleton.getInstance().setP5Applet(this);
 	}
+
 
 }
