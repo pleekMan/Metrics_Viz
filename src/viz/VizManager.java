@@ -255,7 +255,8 @@ public class VizManager {
 	}
 
 	private void renderGui() {
-
+		
+		p5.pushStyle();
 		p5.rectMode(p5.CORNER);
 		p5.textFont(fontMedium, 15);
 
@@ -276,12 +277,24 @@ public class VizManager {
 			p5.text(eventName[i], timelineStart.x + 5, lineY + 15);
 		}
 		p5.line(timelineStart.x, timelineStop.y, timelineStart.x, timelineStart.y);
-
+		
+		// START AND END DATES TEXTS OF TIMELINE
+		p5.textFont(fontLight,17);
+		p5.textAlign(p5.LEFT);
+		Date startDate = new Date((long)startMillis);
+		p5.text(dateFormatter.format(startDate).toString(), timelineStart.x + 5, timelineStop.y + 20);
+		
+		p5.textAlign(p5.RIGHT);
+		Date stopDate = new Date((long)stopMillis);
+		p5.text(dateFormatter.format(stopDate).toString(), timelineStop.x - 5, timelineStop.y + 20);
+		
 		// TIMELINE OVERFLOW MASKS
 		p5.fill(colorBack);
 		p5.noStroke();
 		p5.rect(0, timelineStart.y - 20, timelineStart.x, timelineStop.y - timelineStart.y + 40);
 		p5.rect(timelineStop.x + 1, timelineStart.y - 20, timelineStop.x - timelineStart.x, timelineStop.y + 40);
+		
+		p5.popStyle();
 
 	}
 
@@ -420,8 +433,15 @@ public class VizManager {
 		for (int i = 0; i < eventCounts.length; i++) {
 			overallFinishedRatio += eventCounts[i][0];
 		}
-		overallFinishedRatio = overallFinishedRatio / events.size();
+		float overallDisplayed = 0;
+		for (int i = 0; i < eventsDisplayed.length; i++) {
+			overallDisplayed += eventsDisplayed[i];
 
+		}
+		overallFinishedRatio = overallFinishedRatio / overallDisplayed;
+		//overallFinishedRatio = overallFinishedRatio / events.size();
+
+		
 		p5.fill(200);
 		p5.textAlign(p5.CENTER);
 		p5.text("CONCLUIDOS", totalsGraphStart.x, totalsGraphStart.y - 40);
