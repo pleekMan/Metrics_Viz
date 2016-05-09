@@ -36,7 +36,7 @@ public class Main extends PApplet {
 		vizManager.update();
 		vizManager.render();
 		
-		//drawMouseCoordinates();
+		drawMouseCoordinates();
 
 	}
 
@@ -52,7 +52,7 @@ public class Main extends PApplet {
 	private void drawMouseCoordinates() {
 		// MOUSE POSITION
 		fill(255, 0, 0);
-		text("FR: " + frameRate, 20, 20);
+		//text("FR: " + frameRate, 20, 20);
 		text("X: " + mouseX + " / Y: " + mouseY, mouseX, mouseY);
 	}
 

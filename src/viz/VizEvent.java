@@ -3,7 +3,10 @@ package viz;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import javax.swing.colorchooser.ColorChooserComponentFactory;
 import javax.swing.text.html.BlockView;
+
+import com.jogamp.opengl.FBObject.Colorbuffer;
 
 import globals.Main;
 import globals.PAppletSingleton;
@@ -59,14 +62,15 @@ public class VizEvent {
 
 	public void render() {
 
-		
+		p5.pushStyle();
+
 
 		p5.rectMode(p5.CORNERS);
 		if (isOver(p5.mouseX, p5.mouseY)) {
 			p5.strokeWeight(3);
-			p5.stroke(200);
+			p5.stroke(0,120,220);
 		} else {
-			p5.strokeWeight(1);
+			//p5.strokeWeight(1);
 			p5.noStroke();
 		}
 		// ACTIVE BLOCK
@@ -81,12 +85,15 @@ public class VizEvent {
 		
 		// HOVER LABEL
 		if (isOver(p5.mouseX, p5.mouseY)) {
-			p5.pushStyle();
 			
 			p5.rectMode(p5.CORNER);
 			p5.textFont(VizManager.fontMedium);
 			p5.textSize(15);
-			//p5.stroke(200);
+			
+			p5.stroke(250);
+			p5.strokeWeight(1);
+			p5.line((float)blockStart, (float)blockPosY, (float)blockStart, VizManager.timelineStop.y + 5);
+			
 			p5.noStroke();
 			p5.fill(0,127);
 			p5.rect(p5.mouseX, p5.mouseY, p5.textWidth(getStartTimeAsString()) + 5, -20, 5);
@@ -95,8 +102,10 @@ public class VizEvent {
 			p5.noStroke();
 			p5.text(getStartTimeAsString(), p5.mouseX + 3, p5.mouseY - 4);
 			
-			p5.popStyle();
 		}
+		
+		p5.popStyle();
+
 
 	}
 
@@ -160,7 +169,7 @@ public class VizEvent {
 	}
 	
 	public boolean isInsideVizRange(double minRange, double maxRange){
-		return blockStop > minRange && blockStart < maxRange;
+		return blockActiveStop > minRange && blockStart < maxRange;
 	}
 
 	protected Main getP5() {
